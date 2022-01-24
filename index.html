@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="jquery-3.6.0.min.js"></script>
+    <script src="script.js"></script>
+    <style>
+        body{
+            overflow-x: hidden;
+        }
+        canvas {
+
+            background-size: 20px 20px;
+            background-image: url('empty_cell.png');
+        }
+
+        .canvas-container {
+            width: 100vw;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="canvas-container">
+        <canvas width="1000" height="600">
+        </canvas>
+
+        <div class="button">START</div>
+    </div>
+
+    <script>
+        var canvas, context;
+        var canvasOffset;
+
+        var cellSize = 20;
+
+        var deadCell, aliveCell;
+
+        var board = [];
+
+        var boardSize = {
+            width: 50,
+            height: 30
+        }
+
+        var state = [];
+
+        var pause = true;
+        var interval;
+
+        $(window).on('load', () => {
+            canvas = $('canvas')[0];
+            context = canvas.getContext('2d');
+            canvasOffset = $('canvas').offset();
+
+            deadCell = new Image();
+            deadCell.src = 'dead_cell.png';
+
+            aliveCell = new Image();
+            aliveCell.src = 'alive_cell.png';
+
+            for (let i = 0; i < boardSize.width; i++) {
+                board[i] = [];
+                state[i] = [];
+                for (let j = 0; j < boardSize.height; j++) {
+                    board[i][j] = 0;
+                    state[i][j] = 0;
+                }
+            }
+        });
+
+        $('canvas').on('click', (event) => {
+            let x = event.pageX - canvasOffset.left;
+            let y = event.pageY - canvasOffset.top;
+
+            x = Math.trunc(x / cellSize);
+            y = Math.trunc(y / cellSize);
+            if (board[x][y] == 0) {
+                context.drawImage(aliveCell, x * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
+                board[x][y] = 1;
+                state[x][y] = 1;
+            } else {
+                context.drawImage(deadCell, x * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
+                board[x][y] = 0;
+                state[x][y] = 0;
+            }
+        })
+
+        let MooreNeighborhood = (x, y) => {
+            let pp = 0;
+            let moore = 0;
+
+            if (x > 0 && y > 0) moore += state[x - 1][y - 1] == 1 ? 1 : 0;
+            if (y > 0) moore += state[x][y - 1] == 1 ? 1 : 0;
+            if (x < boardSize.width - 1 && y > 0) moore += state[x + 1][y - 1] == 1 ? 1 : 0;
+
+            if (x > 0) moore += state[x - 1][y] == 1 ? 1 : 0;
+            if (x < boardSize.width - 1) moore += state[x + 1][y] == 1 ? 1 : 0;
+
+            if (x > 0 && y < boardSize.height - 1) moore += state[x - 1][y + 1] == 1 ? 1 : 0;
+            if (y < boardSize.height - 1) moore += state[x][y + 1] == 1 ? 1 : 0;
+            if (x < boardSize.width - 1 && y < boardSize.height - 1) moore += state[x + 1][y + 1] == 1 ? 1 : 0;
+
+            return moore;
+        }
+
+        function GetNextState() {
+            let neighborhood = 0;
+            for (let x = 0; x < boardSize.width; x++) {
+                for (let y = 0; y < boardSize.height; y++) {
+                    neighborhood = MooreNeighborhood(x, y);
+                    if (state[x][y] == 1) {
+                        if (x == 1 && y == 1) console.log(neighborhood)
+                        if (neighborhood != 2 && neighborhood != 3) {
+                            board[x][y] = 0;
+                        }
+                    }
+                    if (state[x][y] == 0) {
+                        if (neighborhood == 3) {
+                            board[x][y] = 1;
+                        }
+                    }
+                    if (board[x][y] != state[x][y]) {
+                        if (board[x][y] == 0) {
+                            context.drawImage(deadCell, x * cellSize + 1, y * cellSize + 1, cellSize - 2,
+                                cellSize - 2);
+                        } else {
+                            context.drawImage(aliveCell, x * cellSize + 1, y * cellSize + 1, cellSize - 2,
+                                cellSize - 2);
+                        }
+                    }
+                }
+            }
+            for (let i = 0; i < boardSize.width; i++)
+                for (let j = 0; j < boardSize.height; j++)
+                    state[i][j] = board[i][j];
+        }
+
+        $('.button').on('click', (event) => {
+            if(pause){
+                interval = setInterval(GetNextState, 500);
+                pause = false;
+            }
+            else{
+                clearInterval(interval);
+                pause = true;
+            }
+        })
+    </script>
+</body>
+
+</html>
